@@ -1,5 +1,10 @@
 `timescale 1ns/1ps
 
+/*
+ * 测试功能：验证 Load-use 冒险检测条件。
+ * 实现方式：组合设置 EX 阶段 Load 和 ID 阶段消费者寄存器编号，检查
+ * rs1、rs2、mac 旧 rd、x0 以及非 Load 等场景的输出。
+ */
 module tb_hazard_unit;
     reg  [4:0] id_ex_rd;
     reg        id_ex_mem_read;
@@ -12,6 +17,7 @@ module tb_hazard_unit;
     wire       load_use_stall;
     integer    errors;
 
+    // 实例化被测 Load-use 检测单元。
     hazard_unit dut (
         .id_ex_rd       (id_ex_rd),
         .id_ex_mem_read (id_ex_mem_read),
@@ -24,6 +30,7 @@ module tb_hazard_unit;
         .load_use_stall (load_use_stall)
     );
 
+    // 比较任务：检查阻塞信号是否等于预期值。
     task check_stall;
         input [255:0] name;
         input expected;
@@ -47,20 +54,25 @@ module tb_hazard_unit;
         if_id_use_rs1 = 1;
         if_id_use_rs2 = 1;
         if_id_use_rd = 0;
+        // Load 的目的寄存器与 ID 指令源寄存器均不匹配。
         check_stall("no_match", 1'b0);
 
+        // ID 指令 rs1 依赖上一周期 Load 的 rd。
         if_id_rs1 = 5'd5;
         check_stall("rs1_match", 1'b1);
 
+        // ID 指令 rs2 依赖上一周期 Load 的 rd。
         if_id_rs1 = 5'd1;
         if_id_rs2 = 5'd5;
         check_stall("rs2_match", 1'b1);
 
+        // mac 的旧 rd 依赖上一周期 Load 的 rd。
         if_id_rs2 = 5'd2;
         if_id_rd = 5'd5;
         if_id_use_rd = 1;
         check_stall("mac_acc_match", 1'b1);
 
+        // x0 不做依赖判断，且非 Load 指令也不应阻塞。
         if_id_rd = 5'd3;
         id_ex_rd = 5'd0;
         if_id_rs1 = 5'd0;

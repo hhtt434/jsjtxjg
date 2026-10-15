@@ -48,12 +48,24 @@ powershell -ExecutionPolicy Bypass -File .\sim\run_all.ps1
 如果本机 Vivado 未安装 Zynq-7020 器件数据，脚本会自动回退到可用的
 7 系列器件完成综合检查。
 
+`riscv_cpu` 顶层的 `debug_*` 输出用于观察 PC、指令、ALU、访存、写回和
+冒险状态。它们同时保证综合优化阶段不会因为顶层没有输出而把整个 CPU
+判定为空设计并全部删除。
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\vivado\build_generic.ps1
 ```
 
 脚本会临时映射一个 Windows 盘符，避免 Vivado 在包含层级较多的路径下
 初始化 Tcl 时出现工作目录解析问题。
+
+如果之前运行过旧版本并启动过 Implementation，请关闭 Vivado，重新打开
+工程后在 `Design Runs` 中依次右键 `Reset Runs`、`Launch Runs`。旧的
+`place_design` 错误来自旧网表，重置后会重新综合包含调试输出的新 RTL。
+
+ModelSim 测试包含真正的时钟、复位和自检测试程序。Vivado 自带的 XSim
+如果直接把 `riscv_cpu` 设为仿真顶层，不会自动提供时钟和复位激励，因此
+功能验收应使用 `sim/run_all.ps1` 的 ModelSim 流程。
 
 ## 自定义测试程序
 

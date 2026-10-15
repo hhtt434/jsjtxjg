@@ -1,5 +1,9 @@
 `timescale 1ns/1ps
 
+/*
+ * 测试功能：验证寄存器堆的三路读口、同步写口和 x0 固定为零。
+ * 实现方式：时钟写回寄存器后，通过 rs1、rs2、rs3 组合读口比较输出。
+ */
 module tb_regfile;
     reg         clk;
     reg         rst;
@@ -14,6 +18,7 @@ module tb_regfile;
     wire [31:0] rdata3;
     integer     errors;
 
+    // 实例化被测寄存器堆。
     regfile dut (
         .clk   (clk),
         .rst   (rst),
@@ -28,6 +33,7 @@ module tb_regfile;
         .rdata3(rdata3)
     );
 
+    // 比较任务：一次检查三路读口是否符合预期。
     task check_read;
         input [255:0] name;
         input [31:0] expected1;
@@ -45,6 +51,7 @@ module tb_regfile;
         end
     endtask
 
+    // 生成 10ns 周期时钟，DUT 在上升沿写寄存器。
     initial begin
         clk = 0;
         forever #5 clk = ~clk;
@@ -61,7 +68,9 @@ module tb_regfile;
         wdata = 0;
         #12;
 
+        // 先复位，再写入 x5，验证正常写读和第三读口。
         rst = 0;
+        // 尝试写 x0，随后确认 x0 仍然保持 0。
         we = 1;
         rd = 5'd5;
         wdata = 32'hDEAD_BEEF;

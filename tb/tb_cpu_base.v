@@ -1,20 +1,50 @@
 `timescale 1ns/1ps
 
+/*
+ * 测试功能：CPU 基础指令和扩展指令集成测试。
+ * 实现方式：加载 base.hex 程序，复位后运行固定周期数，再检查寄存器堆和
+ * 数据存储器结果，覆盖算术、逻辑、移位、立即数、访存、分支、跳转和 mac。
+ */
 module tb_cpu_base;
     reg clk;
     reg rst;
     integer errors;
+    wire [31:0] debug_pc;
+    wire [31:0] debug_instr;
+    wire [31:0] debug_alu_result;
+    wire [31:0] debug_mem_read_data;
+    wire [31:0] debug_wb_write_data;
+    wire [31:0] debug_rs1_data;
+    wire [31:0] debug_rs2_data;
+    wire        debug_reg_write;
+    wire        debug_mem_write;
+    wire        debug_load_use_stall;
+    wire        debug_control_taken;
 
+    // 实例化 CPU，并通过参数让指令存储器加载基础测试程序。
     riscv_cpu #(
         .IMEM_INIT_FILE("tb/programs/base.hex"),
         .DMEM_INIT_FILE("")
     ) dut (
         .clk(clk),
-        .rst(rst)
+        .rst(rst),
+        .debug_pc(debug_pc),
+        .debug_instr(debug_instr),
+        .debug_alu_result(debug_alu_result),
+        .debug_mem_read_data(debug_mem_read_data),
+        .debug_wb_write_data(debug_wb_write_data),
+        .debug_rs1_data(debug_rs1_data),
+        .debug_rs2_data(debug_rs2_data),
+        .debug_reg_write(debug_reg_write),
+        .debug_mem_write(debug_mem_write),
+        .debug_load_use_stall(debug_load_use_stall),
+        .debug_control_taken(debug_control_taken)
     );
 
+    // 生成周期为 10ns 的仿真时钟。
     always #5 clk = ~clk;
 
+    // 比较任务：按编号读取 DUT 内部寄存器并检查预期值。
     task check_reg;
         input [4:0]  index;
         input [31:0] expected;
@@ -27,6 +57,7 @@ module tb_cpu_base;
         end
     endtask
 
+    // 测试主流程：复位、运行程序、检查通用寄存器和数据存储器。
     initial begin
         clk = 0;
         rst = 1;
@@ -36,6 +67,7 @@ module tb_cpu_base;
         repeat (100) @(posedge clk);
         #1;
 
+        // 基础算术和比较结果。
         check_reg(5'd1,  32'd10);
         check_reg(5'd2,  32'd20);
         check_reg(5'd3,  32'd30);
@@ -45,21 +77,25 @@ module tb_cpu_base;
         check_reg(5'd7,  32'hFFFF_FFFF);
         check_reg(5'd8,  32'd0);
         check_reg(5'd9,  32'd1);
+        // 移位和立即数指令结果。
         check_reg(5'd10, 32'd5);
         check_reg(5'd11, 32'd40);
         check_reg(5'd12, 32'h0FFF_FFFF);
         check_reg(5'd13, 32'hFFFF_FFFF);
         check_reg(5'd14, 32'h0000_0040);
+        // auipc、存储、Load 和分支执行结果。
         check_reg(5'd15, 32'h1234_5000);
         check_reg(5'd16, 32'd60);
         check_reg(5'd17, 32'd30);
         check_reg(5'd18, 32'd0);
         check_reg(5'd19, 32'd0);
         check_reg(5'd20, 32'd0);
+        // jal 的 PC+4 返回地址，以及被跳过的错误路径检查。
         check_reg(5'd21, 32'd7);
         check_reg(5'd22, 32'd108);
         check_reg(5'd23, 32'd0);
         check_reg(5'd24, 32'd24);
+        // 定制 mac 和寄存器形式移位结果。
         check_reg(5'd25, 32'd88);
         check_reg(5'd26, 32'd9);
         check_reg(5'd27, 32'd81);
@@ -68,6 +104,7 @@ module tb_cpu_base;
         check_reg(5'd30, 32'h07FF_FFFF);
         check_reg(5'd31, 32'hFFFF_FFFF);
 
+        // 检查 sw/lw 使用的数据存储器位置。
         if (dut.dmem[2] !== 32'd30) begin
             $display("FAIL: dmem[2] expected=0000001e actual=%h", dut.dmem[2]);
             errors = errors + 1;

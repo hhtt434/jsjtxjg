@@ -1,6 +1,7 @@
 `ifndef RISCV_DEFS_VH
 `define RISCV_DEFS_VH
 
+// ALU 操作编码：控制单元输出 alu_op，ALU 根据该编码选择运算结果。
 `define ALU_ADD       4'b0000
 `define ALU_SUB       4'b0001
 `define ALU_SLL       4'b0010
@@ -14,6 +15,7 @@
 `define ALU_MAC       4'b1010
 `define ALU_PASS_B    4'b1011
 
+// RISC-V 主操作码：控制单元用 instr[6:0] 判断指令类型。
 `define OPCODE_RTYPE  7'b0110011
 `define OPCODE_ITYPE  7'b0010011
 `define OPCODE_LOAD   7'b0000011
