@@ -1,0 +1,11 @@
+sim/work/
+vivado_project/
+__pycache__/
+*.py[cod]
+*.wlf
+*.vstf
+*.jou
+*.log
+transcript
+.Xil/
+
